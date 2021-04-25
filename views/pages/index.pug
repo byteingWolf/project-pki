@@ -7,7 +7,11 @@ block content
         title= title
       body
         p <img src = !{user_picture} >
-    a(type = "submit", href='/logout') Log out
+    if auth_service === "Google"
+      a(type = "submit", href='/logout') Log out
+    else if auth_service === "GitHub"
+      a(type = "submit", href='/logoutWithGitHub') Log out
   else
     p You are not logged in
-    a(type = "submit", href='/log') Log in
+    a(type = "submit", href='/log') Log in with Google
+    a(type = "submit", href='/logWithGitHub') Log in with GitHub
