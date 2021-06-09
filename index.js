@@ -1,9 +1,9 @@
 const express = require('express');
 const path = require('path');
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 3000;
 const { google } = require('googleapis');
 const OAuth2Data = require('./google_key.json');
-
+const {Pool} = require('pg');
 const app = express()
 
 const CLIENT_ID = OAuth2Data.web.client_id;
@@ -18,7 +18,7 @@ app.use(express.static(path.join(__dirname, 'public')))
 app.engine('pug', require('pug').__express)
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'pug')
-app.get('/', (req, res) => res.render('pages/index',{auth: auth}))
+app.get('/', (req, res) => res.render('pages/index', { auth: auth }))
 app.get('/log', (req, res) => {
     if (!auth) {
         const url = oAuth2Client.generateAuthUrl({
@@ -26,8 +26,7 @@ app.get('/log', (req, res) => {
             scope: 'https://www.googleapis.com/auth/userinfo.profile'
         });
         res.redirect(url);
-    }else{
-        // console.log(auth)
+    } else {
         const oauth_v2 = google.oauth2({ auth: oAuth2Client, version: 'v2' });
         oauth_v2.userinfo.v2.me.get(function (err, result) {
             if (err) {
@@ -36,7 +35,7 @@ app.get('/log', (req, res) => {
                 auth = result.data.name;
                 user_image = result.data.picture
             }
-            res.render('pages/index',{auth: auth,user_picture :user_image});
+            res.render('pages/index', { auth: auth, user_picture: user_image });
         });
     }
 });
@@ -59,14 +58,28 @@ app.get('/auth/google/callback', function (req, res) {
     }
 });
 
-
 app.get('/logout', (req, res) => {
-    if(auth)
-    {
+    if (auth) {
         oAuth2Client.revokeCredentials();
         auth = false;
         res.redirect('/')
     }
+});
+
+const getPool = () => new Pool({
+    connectionString: "postgres://qinzjcnqfmoyrs:6f227b6fc9409dedd626f7b54c8d576595a83c9bdffa3af103e948dd8d97281c@ec2-35-170-85-206.compute-1.amazonaws.com:5432/d4895c1g577mqb"})
+
+const client = getPool();
+client.connect();
+
+app.get('/getUsers', (req, res) => {
+    client.query('SELECT table_schema,table_name FROM information_schema.tables;', () => {
+        if (err) throw err;
+        for (let row of res.rows) {
+            console.log(JSON.stringify(row));
+        }
+        client.end();
+    });
 });
 
 app.listen(PORT, () => console.log(`Listening on ${PORT}`));
