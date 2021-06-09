@@ -3,7 +3,7 @@ const path = require('path');
 const PORT = process.env.PORT || 3000;
 const { google } = require('googleapis');
 const OAuth2Data = require('./google_key.json');
-const {Pool} = require('pg');
+const { Pool } = require('pg');
 const app = express()
 
 const CLIENT_ID = OAuth2Data.web.client_id;
@@ -67,19 +67,22 @@ app.get('/logout', (req, res) => {
 });
 
 const getPool = () => new Pool({
-    connectionString: "postgres://qinzjcnqfmoyrs:6f227b6fc9409dedd626f7b54c8d576595a83c9bdffa3af103e948dd8d97281c@ec2-35-170-85-206.compute-1.amazonaws.com:5432/d4895c1g577mqb"})
+    connectionString: "postgres://qinzjcnqfmoyrs:6f227b6fc9409dedd626f7b54c8d576595a83c9bdffa3af103e948dd8d97281c@ec2-35-170-85-206.compute-1.amazonaws.com:5432/d4895c1g577mqb"
+})
 
 const client = getPool();
 client.connect();
 
-app.get('/getUsers', (req, res) => {
-    client.query('SELECT table_schema,table_name FROM information_schema.tables;', () => {
-        if (err) throw err;
+app.get('/getUsers', (request, response) => {
+    console.log('Pobieram dane ...');
+    client.query('SELECT * FROM public."Users"', (error, res) => {
+        if (error) {
+            throw error
+        }
+        console.log('Dostałem ...');
         for (let row of res.rows) {
             console.log(JSON.stringify(row));
         }
-        client.end();
-    });
-});
-
+    })
+})
 app.listen(PORT, () => console.log(`Listening on ${PORT}`));
