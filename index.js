@@ -17,8 +17,10 @@ var user_image = false;
 
 app.use(express.static(path.join(__dirname, 'public')))
 // app.engine('pug', require('pug').__express)
-app.set('views', path.join(__dirname, 'views'))
 // app.set('view engine', 'pug')
+app.engine('html', require('ejs').renderFile);
+app.set('view engine', 'html');
+app.set('views', path.join(__dirname, 'views'))
 app.get('/', (req, res) => res.render('pages/index_with_table', { auth: auth }))
 app.get('/log', (req, res) => {
     if (!auth) {
@@ -36,14 +38,12 @@ app.get('/log', (req, res) => {
                 auth = result.data.name;
                 user_image = result.data.picture
             }
-            const user = await getUser(auth)
+            const user = await getUser(auth).catch(console.log(e))
             if (user.rows.length > 0) {
                 updateUserCounter(auth)
-                // response.send(`updated ${userName}`)
             }
             else {
                 addUser(auth)
-                // response.send(`added ${userName}`)
             }
             res.render('pages/index', { auth: auth, user_picture: user_image });
         });
@@ -123,20 +123,19 @@ async function getUser(userName) {
     return client.query(`select * from users where name = '${userName}'`);
 }
 
-// app.get('/addUser', async (request, response) => {
-//     const userName = 'kotek1'
-//     const user = await getUser(userName)
-//     if (user.rows.length > 0) {
-//         console.log("istnieje")
-//         updateUserCounter(userName)
-//         response.send(`updated ${userName}`)
-//     }
-//     else {
-//         console.log("nie istnieje")
-//         addUser(userName)
-//         response.send(`added ${userName}`)
-//     }
-// })
+app.get('/addUser', async (request, response) => {
+    const userName = 'kotek1'
+    const user = await getUser(userName)
+    if (user.rows.length > 0) {
+        console.log("istnieje")
+        updateUserCounter(userName)
+    }
+    else {
+        console.log("nie istnieje")
+        addUser(userName)
+    }
+    res.render('pages/index_with_', { auth: 'test1'});
+})
 
 
 app.listen(PORT, () => console.log(`Listening on ${PORT}`));
