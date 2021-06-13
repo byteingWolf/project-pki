@@ -4,7 +4,6 @@ const PORT = process.env.PORT || 3000;
 const { google } = require('googleapis');
 const OAuth2Data = require('./google_key.json');
 const { Client } = require('pg');
-const { response } = require('express');
 const app = express()
 
 const CLIENT_ID = OAuth2Data.web.client_id;
@@ -15,13 +14,31 @@ var oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URL
 var auth = false;
 var user_image = false;
 
+const client = new Client({
+    connectionString: "postgres://qinzjcnqfmoyrs:6f227b6fc9409dedd626f7b54c8d576595a83c9bdffa3af103e948dd8d97281c@ec2-35-170-85-206.compute-1.amazonaws.com:5432/d4895c1g577mqb",
+    ssl: {
+        rejectUnauthorized: false
+    }
+})
+client.connect();
+
 app.use(express.static(path.join(__dirname, 'public')))
 // app.engine('pug', require('pug').__express)
 // app.set('view engine', 'pug')
 app.engine('html', require('ejs').renderFile);
 app.set('view engine', 'html');
 app.set('views', path.join(__dirname, 'views'))
-app.get('/', (req, res) => res.render('pages/index_with_table', { auth: auth }))
+app.get('/', (req, res) => {
+    const usersList = [];
+    client.query('SELECT * FROM public."users"', (error, resDataBase) => {
+        if (error)
+            throw error
+        for (let row of resDataBase.rows) {
+            usersList.push(row)
+        }
+        res.render('pages/table', { auth: 'user not logged, please log in first',usersList:usersList })
+    })
+})
 app.get('/log', (req, res) => {
     if (!auth) {
         const url = oAuth2Client.generateAuthUrl({
@@ -45,7 +62,8 @@ app.get('/log', (req, res) => {
             else {
                 addUser(auth)
             }
-            res.render('pages/index', { auth: auth, user_picture: user_image });
+            // res.render('pages/index', { auth: auth, user_picture: user_image });
+            res.render('pages/table', { auth: auth,usersList:usersList});
         });
     }
 });
@@ -76,28 +94,6 @@ app.get('/logout', (req, res) => {
     }
 });
 
-const client = new Client({
-    connectionString: "postgres://qinzjcnqfmoyrs:6f227b6fc9409dedd626f7b54c8d576595a83c9bdffa3af103e948dd8d97281c@ec2-35-170-85-206.compute-1.amazonaws.com:5432/d4895c1g577mqb",
-    ssl: {
-        rejectUnauthorized: false
-    }
-})
-
-client.connect();
-
-app.get('/getUsers', (request, response) => {
-    console.log('Pobieram dane ...');
-    client.query('SELECT * FROM public."users"', (error, res) => {
-        if (error)
-            throw error
-        console.log('Dostałem ...');
-        for (let row of res.rows) {
-            console.log(JSON.stringify(row));
-        }
-    })
-    response.send('udalo sie pobrac')
-})
-
 async function updateUserCounter(userName) {
     const timeStamp = Math.floor(Date.now() / 1000)
     client.query(`UPDATE users SET counter = counter + 1,lastvisit = to_timestamp(${timeStamp}) where name = '${userName}' `, (error, res) => {
@@ -123,19 +119,33 @@ async function getUser(userName) {
     return client.query(`select * from users where name = '${userName}'`);
 }
 
-app.get('/addUser', async (request, response) => {
-    const userName = 'kotek1'
-    const user = await getUser(userName)
-    if (user.rows.length > 0) {
-        console.log("istnieje")
-        updateUserCounter(userName)
-    }
-    else {
-        console.log("nie istnieje")
-        addUser(userName)
-    }
-    res.render('pages/index_with_', { auth: 'test1'});
-})
+// app.get('/getUsers', (request, response) => {
+//     console.log('Pobieram dane ...');
+//     client.query('SELECT * FROM public."users"', (error, res) => {
+//         if (error)
+//             throw error
+//         console.log('Dostałem ...');
+//         for (let row of res.rows) {
+//             console.log(JSON.stringify(row));
+//         }
+//     })
+//     response.send('udalo sie pobrac')
+// })
+
+
+// app.get('/addUser', async (request, response) => {
+//     const userName = 'kotek1'
+//     const user = await getUser(userName)
+//     if (user.rows.length > 0) {
+//         console.log("istnieje")
+//         updateUserCounter(userName)
+//     }
+//     else {
+//         console.log("nie istnieje")
+//         addUser(userName)
+//     }
+//     response.render('pages/table', { auth: auth});
+// })
 
 
 app.listen(PORT, () => console.log(`Listening on ${PORT}`));
