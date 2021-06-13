@@ -36,7 +36,10 @@ app.get('/', (req, res) => {
         for (let row of resDataBase.rows) {
             usersList.push(row)
         }
-        res.render('pages/table', { auth: auth,usersList:usersList })
+        if(auth){
+            return res.render('pages/table', { auth: auth,usersList:usersList })
+        }
+        return res.render('pages/table', { auth: 'User not logged, please log in',usersList:usersList })
     })
 })
 app.get('/log', (req, res) => {
