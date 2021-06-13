@@ -55,15 +55,15 @@ app.get('/log', (req, res) => {
                 auth = result.data.name;
                 user_image = result.data.picture
             }
-            const user = await getUser(auth).catch(console.log(e))
+            const user = await getUser(auth).catch(e => console.log(e))
             if (user.rows.length > 0) {
                 updateUserCounter(auth)
             }
             else {
                 addUser(auth)
             }
-            // res.render('pages/index', { auth: auth, user_picture: user_image });
-            res.render('pages/table', { auth: auth,usersList:usersList});
+            res.redirect('/')
+            // res.render('pages/table', { auth: auth,usersList:usersList});
         });
     }
 });
